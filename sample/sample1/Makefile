@@ -1,6 +1,6 @@
 sample:   libmode.so sample.o
 	g++ sample.o -L. -lmodel -o sample
-
+	
 # step1 step2可以使用这一条命令代替
 #libmode.so:	model.cpp model.h
 #	g++ model.cpp model.h -fPIC -shared -o libmodel.so

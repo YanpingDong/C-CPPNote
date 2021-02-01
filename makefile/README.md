@@ -109,6 +109,51 @@ clean:
 
 [sample2细节](sample/sample2)
 
+# 通配符
+
+## $@ $^
+
+$@ ：表示规则中的目标文件集。
+
+$^ : 所有的依赖文件
+
+```makefile
+test:a.c b.c
+    #等同gcc -o test a.c b.c
+	gcc -o $@ $^
+```
+
+## %
+
+"%"匹配任意个字符，使用在规则当中。 
+
+```makefile
+test:test.o test1.o
+	gcc -o $@ $^
+%.o:%.c
+	gcc -o $@ $^
+```
+"%.o" 把我们需要的所有的 ".o" 文件组合成为一个列表，从列表中挨个取出的每一个文件，"%" 表示取出来文件的文件名（不包含后缀），然后找到文件中和 "%"名称相同的 ".c" 文件，然后执行下面的命令，直到列表中的文件全部被取出来为止。
+
+## $< 
+
+$< : 表示第一个依赖文件
+
+```makefile
+# 原始写法
+root_num.o: root_num.c my_root.h  
+    gcc -c root_num.c  
+my_root.o: my_root.c my_root.h  
+    gcc -c my_root.c  
+
+# 简化后写法
+root_num.o: root_num.c my_root.h  
+    gcc -c $<  
+my_root.o: my_root.c my_root.h  
+    gcc -c $<   
+```
+
+
 # 多模块makefile编写1
 
 在大一些的项目里面，所有源代码不会只放在同一个目录，一般各个功能模块的源代码都是分开的，各自放在各自目录下，并且头文件和.c源文件也会有各 自的目录，这样便于项目代码的维护。这样我们可以在每个功能模块目录下都写一个Makefile，各自Makefile处理各自功能的编译链接工作，这样 我们就不必把所有功能的编译链接都放在同一个Makefile里面，这可使得我们的Makefile变得更加简洁，并且编译的时候可选择编译哪一个模块， 这对分块编译有很大的好处。
@@ -254,3 +299,4 @@ all :
 	$(MAKE) -C src/model
 	$(MAKE) -C src
 ```
+

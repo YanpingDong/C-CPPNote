@@ -1,20 +1,18 @@
 CFLAGS += -g -Wall -Werror -O2 
-CPPFLAGS += -I. -I./model
-LDFLAGS += -L./libs 
+CPPFLAGS += -I. -I../include
+LDFLAGS += -L../libs 
 LIBS += -lmodel 
 
 SRC_FILES = $(wildcard *.cpp) 
 SRC_OBJ = $(SRC_FILES:.cpp=.o)   
-SRC_BIN = sample3  
+SRC_BIN = sample4  
 
-all :  submode $(SRC_BIN)
+all : $(SRC_BIN)
 
-submode:
-	$(MAKE) -C model
 
 $(SRC_BIN) : $(SRC_OBJ)
 	g++ -o $@ $^ $(LDFLAGS) $(LIBS)
-
+	mv $@ ../build
 
 clean:
 	$(RM) $(SRC_OBJ) $(SRC_BIN) 

@@ -17,3 +17,6 @@ target/*
 .settings/*
 */.settings/*
 *.o
+*.a
+*.so
+*.kdev4

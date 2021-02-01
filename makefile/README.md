@@ -6,7 +6,7 @@ Makefile 可以简单的认为是一个工程文件的编译规则，描述了�
 
 我们编写 Makefile 的时可以使用的文件的名称 "GNUmakefile" 、"makefile" 、"Makefile" ，make 执行时回去寻找 Makefile 文件，找文件的顺序也是这样的。
 
-在我们编译项目文件的时候，默认情况下，make 执行的是 Makefile 中的第一规则（Makefile 中出现的第一个依赖关系），此规则的第一目标称之为“最终目标”或者是“终极目标”。
+我们编译项目文件的时候，默认情况下，make 执行的是 Makefile 中的第一规则（Makefile 中出现的第一个依赖关系），此规则的第一目标称之为“最终目标”或者是“终极目标”。
 
 推荐使用 Makefile（一般在工程中都这么写，大写的会比较的规范）。如果文件不存在，make 就会给我们报错，提示：
 
@@ -15,9 +15,9 @@ Makefile 可以简单的认为是一个工程文件的编译规则，描述了�
 make：*** 没有明确目标并且找不到 makefile。停止
 ```
 
-# Makefile 书写规则
+# Makefile书写规则
 
-我们已经知道了 Makefile 描述的是文件编译的相关规则，它的规则主要是两个部分组成，分别是依赖的关系和执行的命令，其结构如下所示：
+Makefile描述的是文件编译的相关规则，它的规则主要是两个部分组成，分别是依赖的关系和执行的命令，其结构如下所示：
 
 ```
 targets : prerequisites
@@ -37,7 +37,7 @@ targets : prerequisites; command
 
 `注意：我们的目标和依赖文件之间要使用冒号分隔开，命令的开始一定要使用Tab键。如果不是tab用空格代替会报“missing separator.  Stop.”`
 
-## 一个简单的makefile
+# 一个简单的makefile
 
 先看一个简单的C++程序：
 
@@ -63,6 +63,8 @@ sample1:	sample1.cpp
 
 [sample1细节](sample/sample1)
 
+## makefile包含内容
+
 简单的概括一下Makefile 中的内容，它主要包含有五个部分，分别是：
 1) 显式规则
 显式规则说明了，如何生成一个或多的的目标文件。这是由 Makefile 的书写者明显指出，要生成的文件，文件的依赖文件，生成的命令。
@@ -75,7 +77,7 @@ sample1:	sample1.cpp
 5) 注释
 Makefile 中只有行注释，和 UNIX 的 Shell 脚本一样，其注释是用“#”字符，这个就像 C/C++ 中的“//”一样。如果你要在你的 Makefile 中使用“#”字符，可以用反斜框进行转义，如：“\\#”。
 
-# Makefile的工流程
+## Makefile的工流程
 
 我们假设有个项目依赖其他模块，这里用model来模拟。这样我们就有如下的稍微复杂的makefile。
 
@@ -106,3 +108,149 @@ clean:
 通过上面的更新规则我们可以了解到中间文件的作用，也就是编译时生成的 ".o" 文件。作用是检查某个源文件是不是进行过修改，最终目标文件是不是需要重建。我们执行 make 命令时，只有修改过的源文件或者是不存在的目标文件会进行重建，而那些没有改变的文件不用重新编译，这样在很大程度上节省时间，提高编程效率。小的工程项目可能体会不到，项目工程文件越大，效果才越明显。
 
 [sample2细节](sample/sample2)
+
+# 多模块makefile编写
+
+在大一些的项目里面，所有源代码不会只放在同一个目录，一般各个功能模块的源代码都是分开的，各自放在各自目录下，并且头文件和.c源文件也会有各 自的目录，这样便于项目代码的维护。这样我们可以在每个功能模块目录下都写一个Makefile，各自Makefile处理各自功能的编译链接工作，这样 我们就不必把所有功能的编译链接都放在同一个Makefile里面，这可使得我们的Makefile变得更加简洁，并且编译的时候可选择编译哪一个模块， 这对分块编译有很大的好处。
+
+主要思路是，让主模块目录生成可执行文件，其他模块目录生成静态库文件，主模块链接时要用其他模块编译产生的库文件来生成最终的程序。
+
+现在假设模块结构如下,Sample3项目依赖model模块。(规范的划分的话是可以再划分出include/module_name目录来专门放头文件，src/module_name来专门放.c/.cpp)
+
+下面结构sample3.cpp所在的目录是主模块目录，model目录是子模块目录，model编译完成的模块会移动到libs供sample3.cpp连接。
+
+```
+sample3
+  |---libs
+  |---model
+  |     |---model.cpp
+  |     |---model.h
+  |     |---Makefile
+  |---sample3.cpp
+  |---Makefile
+```
+
+model的Makefile文件,可以看到实际就是编译、生成静态文件、放入指定libs目录：
+
+```makefile
+CFLAGS += -g -Wall -Werror -O2 
+CPPFLAGS += -I. -I../../include
+
+SRC_FILES = $(wildcard *.cpp) 
+SRC_OBJ = $(SRC_FILES:.cpp=.o) 
+SRC_LIB = libmodel.a  
+
+all:  $(SRC_LIB) 
+
+$(SRC_LIB): $(SRC_OBJ) 
+	$(AR) rcs $@ $^  
+	mv $@ ../../libs
+
+clean:
+	$(RM) $(SRC_OBJ) $(SRC_LIB) 
+```
+
+sample3.cpp主程序生成Makefile文件,功能是调用model模块makefile`$(MAKE) -C model`，然后连接model库并生成可运行文件sample3。所以只需要在sample3项目跟目录运行`make`命令就可以，这个根目录下的Makefile会帮我们调用模块的makefile文件完成构建。
+
+```makefile
+CFLAGS += -g -Wall -Werror -O2 
+CPPFLAGS += -I. -I./model
+LDFLAGS += -L./libs 
+LIBS += -lmodel 
+
+SRC_FILES = $(wildcard *.cpp) 
+SRC_OBJ = $(SRC_FILES:.cpp=.o)   
+SRC_BIN = sample3  
+
+all :  submode $(SRC_BIN)
+
+submode:
+	$(MAKE) -C model
+
+$(SRC_BIN) : $(SRC_OBJ)
+	g++ -o $@ $^ $(LDFLAGS) $(LIBS)
+
+
+clean:
+	$(RM) $(SRC_OBJ) $(SRC_BIN) 
+```
+
+[sample3细节](sample/sample3)
+
+```
+NOTE:
+CFLAGS  CPPFLAGS 是make的变量设置后不需要
+```
+
+# 多模块编译2
+
+前面说了模块的划分可以进一步将头文件和.c/.cpp文件进行划分，所以上面的结构可以进一步变成如下结构。
+
+```
+sample4
+  |---libs
+  |---include
+  |    |---model
+  |         |---model.h
+  |---src
+  |    |---model
+  |    |    |---model.cpp
+  |    |    |---Makefile
+  |    |---sample4.cpp
+  |    |---Makefile
+  |---Makefile
+```
+
+对于所有.cpp文件的编译和以前没什么变化，只是-I添加的头文件路径发生了变化,还有就是拷贝时候的路径关系变化了，毕竟路径深度比以前多了一个目录，并且多了一个Makefile来处理两个Makefile的关系和自动调用，当然也可以把控制各个Makefile的关系写到sample4.cpp所在目录的Makefile里，但为了清晰还是做了一个总的Makefile
+
+Model的Makefile
+
+```makefile
+CFLAGS += -g -Wall -Werror -O2 
+CPPFLAGS += -I. -I../../include
+
+SRC_FILES = $(wildcard *.cpp) 
+SRC_OBJ = $(SRC_FILES:.cpp=.o) 
+SRC_LIB = libmodel.a  
+
+all:  $(SRC_LIB) 
+
+$(SRC_LIB): $(SRC_OBJ) 
+	$(AR) rcs $@ $^  
+	mv $@ ../../libs
+
+clean:
+	$(RM) $(SRC_OBJ) $(SRC_LIB) 
+```
+
+sample4的Makefile
+
+```makefile
+CFLAGS += -g -Wall -Werror -O2 
+CPPFLAGS += -I. -I../include
+LDFLAGS += -L../libs 
+LIBS += -lmodel 
+
+SRC_FILES = $(wildcard *.cpp) 
+SRC_OBJ = $(SRC_FILES:.cpp=.o)   
+SRC_BIN = sample4  
+
+all : $(SRC_BIN)
+
+
+$(SRC_BIN) : $(SRC_OBJ)
+	g++ -o $@ $^ $(LDFLAGS) $(LIBS)
+	mv $@ ../build
+
+clean:
+	$(RM) $(SRC_OBJ) $(SRC_BIN) 
+
+```
+
+总的makefile,可以看到是先编译model然后在去编译sample4
+
+```makefile
+all :
+	$(MAKE) -C src/model
+	$(MAKE) -C src
+```

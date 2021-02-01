@@ -109,7 +109,7 @@ clean:
 
 [sample2细节](sample/sample2)
 
-# 多模块makefile编写
+# 多模块makefile编写1
 
 在大一些的项目里面，所有源代码不会只放在同一个目录，一般各个功能模块的源代码都是分开的，各自放在各自目录下，并且头文件和.c源文件也会有各 自的目录，这样便于项目代码的维护。这样我们可以在每个功能模块目录下都写一个Makefile，各自Makefile处理各自功能的编译链接工作，这样 我们就不必把所有功能的编译链接都放在同一个Makefile里面，这可使得我们的Makefile变得更加简洁，并且编译的时候可选择编译哪一个模块， 这对分块编译有很大的好处。
 
@@ -223,7 +223,7 @@ clean:
 	$(RM) $(SRC_OBJ) $(SRC_LIB) 
 ```
 
-sample4的Makefile
+sample4的Makefile,编译连接主程序并移动到../build目录
 
 ```makefile
 CFLAGS += -g -Wall -Werror -O2 

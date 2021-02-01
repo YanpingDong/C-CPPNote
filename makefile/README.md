@@ -153,6 +153,140 @@ my_root.o: my_root.c my_root.h
     gcc -c $<   
 ```
 
+# 变量
+
+可以利用Makefile 中的变量来表示某些多处使用而又可能发生变化的内容，不仅可以节省重复修改的工作，还可以避免遗漏。 Makefile 文件中定义变量的基本语法如下：
+
+```makefile
+#定义
+变量的名称=值列表
+#使用
+$(变量的名称)
+```
+Makefile 中的变量的使用其实非常的简单，因为它并没有像其它语言那样定义变量的时候需要使用数据类型。变量的名称可以由大小写字母、阿拉伯数字和下划线构成.
+
+```makefile
+OBJ=main.o test.o test1.o test2.o
+test:$(OBJ)
+	gcc -o test $(OBJ)
+```
+
+Makefile 的变量的四种基本赋值方式：
+
+- 简单赋值 ( := ) 编程语言中常规理解的赋值方式，只对当前语句的变量有效。
+- 递归赋值 ( = ) 赋值语句可能影响多个变量，所有目标变量相关的其他变量都受影响。
+- 条件赋值 ( ?= ) 如果变量未定义，则使用符号中的值定义变量。如果该变量已经赋值，则该赋值语句无效。
+- 追加赋值 ( += ) 原变量用空格隔开的方式追加一个新值。
+
+**简单赋值**
+
+```makefile
+x:=foo
+y:=$(x)b
+x:=new
+test：
+	@echo "y=>$(y)"
+	@echo "x=>$(x)"
+
+#在 shell 命令行执行make test我们会看到:
+y=>foob
+x=>new
+```
+
+**递归赋值**
+```makefile
+x=foo
+y=$(x)b
+x=new
+test：
+	@echo "y=>$(y)"
+	@echo "x=>$(x)"
+
+#在 shell 命令行执行make test我们会看到:
+y=>newb
+x=>new
+```
+
+**条件赋值**
+
+```makefile
+x:=foo
+y:=$(x)b
+x?=new
+test：
+	@echo "y=>$(y)"
+	@echo "x=>$(x)"
+
+#在 shell 命令行执行make test 我们会看到:
+y=>foob
+x=>foo
+```
+
+**追加赋值**
+
+```makefile
+x:=foo
+y:=$(x)b
+x+=$(y)
+test：
+	@echo "y=>$(y)"
+	@echo "x=>$(x)"
+
+#在 shell 命令行执行make test我们会看到:
+y=>foob
+x=>foo foob
+```
+
+# VPATH vpath使用
+
+对于简单工程这样指出头文件和源文件位置是可以的，如果对于复杂工程还是可以看后面的多模块makefile编写。而且编写的时候必须使用$@ $< $^来来指定规则种的名称，不能直接使用文件名，会把找不到。这点需要注意
+
+demo的头文件在include里，c文件在src里面
+
+```makefile
+#demo
+vpath %.c src
+vpath %.h include
+main:main.o list1.o list2.o
+    #不能使用gcc -o main main.o,以下所有规则命令同理
+    gcc -o $@ $<
+main.o:main.c
+    gcc -o $@ $^
+list1.o:list1.c list1.h
+    gcc -o $@ $<
+list2.o:list2.c list2.h
+    gcc -o $@ $<
+
+#另一种写法
+VPATH=src include
+main:main.o list1.o list2.o
+    gcc -o $@ $<
+main.o:main.c
+    gcc -o $@ $^
+list1.o:list1.c list1.h
+    gcc -o $@ $<
+list2.o:list2.c list2.h
+    gcc -o $@ $<
+```
+
+# 隐含规则
+
+编写 Makefile 的时候，可以使用隐含规则来简化Makefile 文件编写。make可以推导规则，所以有的规则是可以不用写出来的。比如：
+
+```makefile
+#完整
+test:test.o
+	gcc -o test test.o
+test.o:test.c
+    gcc -c test.c
+#简化1
+test:test.o
+	gcc -o test test.o
+test.o:test.c
+#进一步简化，test.o的生成是可以省略的，只要都是xxx.o-->xxx.c这种
+test:test.o
+	gcc -o test test.o
+```
 
 # 多模块makefile编写1
 

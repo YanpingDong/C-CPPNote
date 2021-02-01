@@ -1,5 +1,5 @@
 CFLAGS += -g -Wall -Werror -O2 
-CPPFLAGS += -I.
+CPPFLAGS += -I. -g -Wall -Werror -O2
 
 SRC_FILES = $(wildcard *.cpp) 
 SRC_OBJ = $(SRC_FILES:.cpp=.o) 

@@ -11,7 +11,7 @@ all : $(SRC_BIN)
 
 
 $(SRC_BIN) : $(SRC_OBJ)
-	g++ -o $@ $^ $(LDFLAGS) $(LIBS)
+	$(CXX) -o $@ $^ $(LDFLAGS) $(LIBS)
 	mv $@ ../build
 # 可以省略通过隐含规则推导
 %.o:%.cpp

@@ -12,7 +12,7 @@ $(SRC_LIB): $(SRC_OBJ)
 	mv $@ ../../libs
 # 可以省略通过隐含规则推导
 %.o:%.cpp
-	g++ $(CPPFLAGS) $(CFLAGS) $@ $^
+	$(CXX) $(CPPFLAGS) $(CFLAGS) $@ $^
 	
 clean:
 	$(RM) $(SRC_OBJ) $(SRC_LIB) 

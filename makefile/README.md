@@ -237,6 +237,30 @@ y=>foob
 x=>foo foob
 ```
 
+## make默认变量
+
+代表命令的变量，默认都是小写，也可以大写。
+
+```
+AR：函数库打包程序，科创价静态库 .a 文档。
+AS：应用于汇编程序。
+CC：C 编译程序。
+CXX：C++编译程序。
+CO：从 RCS 中提取文件的程序。
+CPP：C程序的预处理器。
+FC：编译器和与处理函数 Fortran 源文件的编译器。
+GET：从CSSC 中提取文件程序。
+LEX：将Lex语言转变为 C 或 Ratfo 的程序。
+PC：Pascal 语言编译器。
+YACC：Yacc 文法分析器（针对于C语言）
+YACCR：Yacc 文法分析器。
+```
+
+```makefile
+test:test.o
+    $(CC) -o test test.o
+```
+
 # VPATH vpath使用
 
 对于简单工程这样指出头文件和源文件位置是可以的，如果对于复杂工程还是可以看后面的多模块makefile编写。而且编写的时候必须使用$@ $< $^来来指定规则种的名称，不能直接使用文件名，会把找不到。这点需要注意
@@ -286,6 +310,38 @@ test.o:test.c
 #进一步简化，test.o的生成是可以省略的，只要都是xxx.o-->xxx.c这种
 test:test.o
 	gcc -o test test.o
+```
+
+隐含规则中使用的变量可以分成两类：
+
+1. 代表一个程序的名字。例如：“CC”代表了编译器的这个可执行程序。
+2. 代表执行这个程序使用的参数.例如：变量“CFLAGS”。多个参数之间使用空格隔开。
+
+如果你设置的会自动使用你设置的变量,看下面的makefile，省略了.o文件的生成规则
+
+```makefile
+CPPFLAGS += -I. -g -Wall -Werror -O2
+
+SRC_FILES = $(wildcard *.cpp) 
+SRC_OBJ = $(SRC_FILES:.cpp=.o) 
+SRC_LIB = libmodel.a  
+
+all:  $(SRC_LIB) 
+
+$(SRC_LIB): $(SRC_OBJ) 
+	$(AR) rcs $@ $^  
+	mv $@ ../libs
+
+# 可以省略通过隐含规则推导
+#%.o:%.cpp
+#	$(CXX) $(CPPFLAGS) $(CFLAGS) $@ $^
+
+```
+执行输出可以看出，自动导入了CPPFLAGS的设置
+```
+g++  -I. -g -Wall -Werror -O2  -c -o model.o model.cpp
+ar rcs libmodel.a model.o  
+mv libmodel.a ../libs
 ```
 
 # 多模块makefile编写1

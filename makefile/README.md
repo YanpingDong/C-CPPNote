@@ -559,3 +559,172 @@ endif
 foo:$(objects)
     $(CC) -o foo $(objects) $(libs)
 ```
+
+```
+NOTE：在 make 读取 Makefile 文件时计算表达式的值，并根据表达式的值决定判断语句中的哪一个部分作为此 Makefile 所要执行的内容。因此在条件表达式中不能使用自动化变量，自动化变量在规则命令执行时才有效，更不能将一个完整的条件判断语句分卸在两个不同的 Makefile 的文件中。在一个 Makefile 中使用指示符 "include" 包含另一个 Makefile 文件。
+```
+
+# 伪目标
+
+避免我们的 Makefile 中定义的只执行的命令的目标和工作目录下的实际文件出现名字冲突。
+
+看一个常用的清理makefile写法
+
+```Makefile
+clean:
+    rm -rf *.o 
+```
+规则中 rm 命令不是创建文件 clean 的命令，而是执行删除任务，删除当前目录下的所有的 .o 结尾的文件。当工作目录下不存在以 clean 命令的文件时，在 shell 中输入 make clean 命令，命令 rm -rf *.o test 总会被执行 ，这也是我们期望的结果。
+
+如果当前目录下存在文件名为clean的文件时情况就会不一样了，当我们在 shell 中执行命令 make clean，由于这个规则没有依赖文件，所以目标被认为是最新的而不去执行规则所定义的命令。因此命令 rm 将不会被执行。为了解决这个问题，删除 clean 文件或者是在 Makefile 中将目标 clean 声明为伪目标。将一个目标声明称伪目标的方法是将它作为特殊的目标.PHONY的依赖，如下：
+
+```Makefile
+.PHONY:clean
+clean:
+    rm -rf *.o 
+```
+这样 clean 就被声明成一个伪目标，无论当前目录下是否存在 clean 这个文件，当我们执行 make clean 后 rm 都会被执行。
+另外当一个目标被声明为伪目标之后，make在执行此规则时也不会去试图去查找隐含的关系去创建它。这样同样提高了 make 的执行效率，同时也不用担心目标和文件名重名而使我们的编译失败。
+
+伪目标的另一种使用的场合是在 make 的并行和递归执行的过程中，此情况下一般会存在一个变量，定义为所有需要 make 的子目录。对多个目录进行 make 的实现，可以在一个规则的命令行中使用 shell 循环来完成。如下：
+
+```Makefile
+SUBDIRS=foo bar baz
+subdirs:
+	for dir in $(SUBDIRS);do $(MAKE) -C $$dir;done
+```
+代码表达的意思是当前目录下存在三个子文件目录，每个子目录文件都有相对应的 Makefile 文件，代码中实现的部分是用当前目录下的 Makefile 控制其它子模块中的 Makefile 的运行，但是这种实现方法存在以下问题：
+- 当子目录执行 make 出现错误时，make 不会退出。就是说，在对某个目录执行 make 失败以后，会继续对其他的目录进行 make。在最终执行失败的情况下，我们很难根据错误提示定位出具体实在那个目录下执行 make 发生的错误。这样给问题定位造成很大的困难。为了解决问题可以在命令部分加入错误检测，在命令执行的错误后主动退出。不幸的是如果在执行 make 时使用了 "-k" 选项，此方式将失效。
+- 另外一个问题就是使用这种 shell 循环方式时，没有用到 make 对目录的并行处理功能由于规则的命令时一条完整的 shell 命令，不能被并行处理。
+
+有了伪目标之后，我们可以用它来克服以上方式所存在的两个问题，代码展示如下：
+
+```makefile
+SUBDIRS=foo bar baz
+.PHONY:subdirs $(SUBDIRS)
+subdirs:$(SUBDIRS)
+$(SUBDIRS):
+	$(MAKE) -C $@
+foo:baz
+```
+上面的实例中有一个没有命令行的规则“foo:baz”，这个规则是用来规定三个子目录的编译顺序。因为在规则中 "baz" 的子目录被当作成了 "foo" 的依赖文件，所以 "baz" 要比 "foo" 子目录更先执行，最后执行 "bar" 子目录的编译。
+
+## 伪目标实现多文件编辑
+
+如果在一个文件里想要同时生成多个可执行文件，我们可以借助伪目标来实现。使用方式如下：
+
+```makefile
+.PHONY:all
+all:test1 test2 test3
+test1:test1.o
+    gcc -o $@ $^
+test2:test2.o
+    gcc -o $@ $^
+test3:test3.o
+    gcc -o $@ $^
+```
+
+# 函数使用
+
+函数的调用和变量的调用很像。引用变量的格式为$(变量名)，函数调用的格式如下：
+
+```makefile
+$(<function> <arguments>)    或者是     ${<function> <arguments>}
+```
+
+模式字符串替换函数，函数使用格式如下：`$(patsubst <pattern>,<replacement>,<text>)`
+
+```makefile
+OBJ=$(patsubst %.c,%.o,1.c 2.c 3.c)
+all:
+    @echo $(OBJ)
+```
+执行 make 命令，我们可以得到的值是 "1.o 2.o 3.o"，这些都是替换后的值。
+
+
+## 常用的函数
+
+模式字符串替换函数 `$(patsubst <pattern>,<replacement>,<text>)`:  OBJ=$(patsubst %.c,%.o,1.c 2.c 3.c) 执行 make 命令，我们可以得到的值是 "1.o 2.o 3.o"
+
+字符串替换函数 `$(subst <from>,<to>,<text>)` : OBJ=$(subst ee,EE,feet on the street) 执行 make 命令，我们得到的值是“fEEt on the strEEt”。
+
+去空格函数 `$(strip <string>)` : OBJ=$(strip    a       b c)执行完 make 之后，结果是“a b c”。这个只是除去开头和结尾的空格字符，并且将字符串中的空格合并成为一个空格。
+
+查找字符串函数 `$(findstring <find>,<in>)` : OBJ=$(findstring a,a b c) 执行 make 命令，得到的返回的结果就是 "a"。
+
+过滤函数 `$(filter <pattern>,<text>)` : OBJ=$(filter %.c %.o,1.c 2.o 3.s) 执行 make 命令，我们得到的值是“1.c 2.o”。
+
+反过滤函数 `$(filter-out <pattern>,<text>)`: OBJ=$(filter-out 1.c 2.o ,1.o 2.c 3.s) 执行 make 命令，打印的结果是“3.s”。
+
+排序函数 `$(sort <list>)` : OBJ=$(sort foo bar foo lost) 执行 make 命令，我们得到的值是“bar foo lost”。
+
+取单词函数 `$(word <n>,<text>)` : OBJ=$(word 2,1.c 2.c 3.c) 执行 make 命令，我们得到的值是“2.c”。
+
+取目录函数 `$(dir <names>)` : OBJ=$(dir src/foo.c hacks) 执行 make 命令，我们可以得到的值是“src/ ./”。提取文件 foo.c 的路径是 "/src" 和文件 hacks 的路径 "./"。
+
+取文件函数 `$(notdir <names>)` : OBJ=$(notdir src/foo.c hacks),执行 make 命令，我们可以得到的值是“foo.c hacks”。函数的功能是从文件名序列 names 中取出非目录的部分
+
+取后缀名函数 `$(suffix <names>)` : OBJ=$(suffix src/foo.c hacks)执行 make 命令，我们得到的值是“.c ”。文件 "hacks" 没有后缀名，所以返回的是空值。
+
+取前缀函数 `$(basename <names>)` : OBJ=$(notdir src/foo.c hacks) 执行 make 命令，我们可以得到值是“src/foo hacks”。获取的是文件的前缀名，包含文件路径的部分。
+
+添加后缀名函数 `$(addsuffix <suffix>,<names>)` : OBJ=$(addsuffix .c,src/foo.c hacks)执行 make 后我们可以得到“sec/foo.c.c hack.c”。
+
+添加前缀名函数 `$(addperfix <prefix>,<names>)` : OBJ=$(addprefix src/, foo.c hacks)执行 make 命令，我们可以得到值是 "src/foo.c src/hacks"。
+
+链接函数 `$(join <list1>,<list2>)` : OBJ=$(join src car,abc zxc qwe)执行 make 命令，我们可以得到的值是“srcabc carzxc qwe”。
+
+获取匹配模式文件名函数 `$(wildcard PATTERN)` : OBJ=$(wildcard *.c  *.h)执行 make 命令，可以得到当前函数下所有的 ".c " 和  ".h"  结尾的文件。这个函数通常跟的通配符 "*" 连用，使用在依赖规则的描述的时候被展开
+
+遍历函数 `$(foreach <var>,<list>,<text>)` : 执行 make 命令，我们得到的值是“a.o b.o c.o d.o”。
+
+```
+name:=a b c d
+files:=$(foreach n,$(names),$(n).o)
+```
+
+判断函数`$(if <condition>,<then-part>)或(if<condition>,<then-part>,<else-part>)` : 
+
+```
+OBJ:=foo.c
+OBJ:=$(if $(OBJ),$(OBJ),main.c)
+all:
+      @echo $(OBJ)
+```
+执行 make 命令我们可以得到函数的值是 foo.c，如果变量 OBJ 的值为空的话，我们得到的 OBJ 的值就是main.c。
+
+唯一一个可以用来创建新的参数化的函数 `$(call <expression>,<parm1>,<parm2>,<parm3>,...)` :
+call 函数是唯一一个可以用来创建新的参数化的函数。我们可以用来写一个非常复杂的表达式，这个表达式中，我们可以定义很多的参数，然后你可以用 call 函数来向这个表达式传递参数。
+
+```
+reverse = $(1) $(2)
+foo = $(call reverse,a,b)
+all：
+      @echo $(foo)
+```
+foo 的值就是“a b”
+
+变量是哪里来 `$(origin <variable>)`:
+
+origin 函数不像其他的函数，它并不操作变量的值，它只是告诉你这个变量是哪里来的。
+注意： variable 是变量的名字，不应该是引用，所以最好不要在 variable 中使用“$”字符。origin 函数会员其返回值来告诉你这个变量的“出生情况”。
+
+下面是origin函数返回值：
+- “undefined”：如果<variable>从来没有定义过，函数将返回这个值。
+- “default”：如果<variable>是一个默认的定义，比如说“CC”这个变量。
+- “environment”：如果<variable>是一个环境变量并且当Makefile被执行的时候，“-e”参数没有被打开。
+- “file”：如果<variable>这个变量被定义在Makefile中，将会返回这个值。
+- “command line”：如果<variable>这个变量是被命令执行的，将会被返回。
+- “override”：如果<variable>是被override指示符重新定义的。
+- “automatic”：如果<variable>是一个命令运行中的自动化变量。
+
+这些信息对于我们编写 Makefile 是非常有用的，例如假设我们有一个 Makefile ，其包含了一个定义文件Make.def，在Make.def中定义了一个变量bletch，而我们的环境变量中也有一个环境变量bletch，我们想去判断一下这个变量是不是环境变量，如果是我们就把它重定义了。如果是非环境变量，那么我们就不重新定义它。于是，我们在 Makefile 中，可以这样写：
+
+```
+ifdef bletch
+ifeq "$(origin bletch)" "environment"
+bletch = barf,gag,etc
+endif
+endif
+```
+当然，使用override关键字不就可以重新定义环境中的变量了吗，为什么需要使用这样的步骤？是的，我们用override是可以达到这样的效果的，可是override会把从命令行定义的变量也覆盖了，而我们只想重新定义环境传来的，而不是重新定义命令行传来的。

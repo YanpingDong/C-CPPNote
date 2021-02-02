@@ -111,17 +111,26 @@ clean:
 
 # 通配符
 
-## $@ $^
 
-$@ ：表示规则中的目标文件集。
+Makefile 是可以使用 shell 命令的，所以 shell 支持的通配符在 Makefile 中也是同样适用的。 shell 中使用的通配符有："*"，"?"，"[...]"，规则中可以使用%
 
-$^ : 所有的依赖文件
+|通配符 | 使用说明|
+|---|---|
+* |	匹配0个或者是任意个字符
+？ | 匹配任意一个字符
+[] | 我们可以指定匹配的字符放在 "[]" 中
+% | 匹配任意个字符，使用在规则当中。 
+
+## *
 
 ```makefile
-test:a.c b.c
-    #等同gcc -o test a.c b.c
-	gcc -o $@ $^
+clean:
+    rm -rf *.o test
+
+test:*.c
+    gcc -o $@ $^
 ```
+
 
 ## %
 
@@ -134,6 +143,20 @@ test:test.o test1.o
 	gcc -o $@ $^
 ```
 "%.o" 把我们需要的所有的 ".o" 文件组合成为一个列表，从列表中挨个取出的每一个文件，"%" 表示取出来文件的文件名（不包含后缀），然后找到文件中和 "%"名称相同的 ".c" 文件，然后执行下面的命令，直到列表中的文件全部被取出来为止。
+
+# 自动变量
+
+## $@ $^
+
+$@ ：表示规则中的目标文件集。
+
+$^ : 所有的依赖文件
+
+```makefile
+test:a.c b.c
+    #等同gcc -o test a.c b.c
+	gcc -o $@ $^
+```
 
 ## $< 
 
@@ -344,6 +367,8 @@ ar rcs libmodel.a model.o
 mv libmodel.a ../libs
 ```
 
+有了上面的基础就可以看下面俩个实例多模块实例了！
+
 # 多模块makefile编写1
 
 在大一些的项目里面，所有源代码不会只放在同一个目录，一般各个功能模块的源代码都是分开的，各自放在各自目录下，并且头文件和.c源文件也会有各 自的目录，这样便于项目代码的维护。这样我们可以在每个功能模块目录下都写一个Makefile，各自Makefile处理各自功能的编译链接工作，这样 我们就不必把所有功能的编译链接都放在同一个Makefile里面，这可使得我们的Makefile变得更加简洁，并且编译的时候可选择编译哪一个模块， 这对分块编译有很大的好处。
@@ -490,3 +515,47 @@ all :
 	$(MAKE) -C src
 ```
 
+# 条件判断ifeq、ifneq、ifdef和ifndef
+
+条件语句可以根据一个变量的值来控制 make 执行或者时忽略 Makefile 的特定部分，条件语句可以是两个不同的变量或者是常量和变量之间的比较。条件语句只能用于控制 make 实际执行的 Makefile 文件部分，不能控制规则的 shell 命令执行的过程。
+
+关键字	| 功能
+---|---
+ifeq |	判断参数是否不相等，相等为 true，不相等为 false。
+ifneq |	判断参数是否不相等，不相等为 true，相等为 false。
+ifdef | 判断是否有值，有值为 true，没有值为 false。
+ifndef	| 判断是否有值，没有值为 true，有值为 false。
+
+
+```makefile
+foo = test
+all:
+#不能写成 $(foo)这样实际检测的是test
+ifdef foo
+	@echo yes
+else
+	@echo  no
+endif
+
+ifeq ($(CC),gcc)
+	@echo gcc
+else
+	@echo $(CC)
+endif
+```
+
+[实例5细节](sample/sample5)
+
+如果我们需要给不同的编译器是用不同的库，就可以使用条件判断了，如下
+
+```makefile
+libs_for_gcc= -lgnu
+normal_libs=
+ifeq($(CC),gcc)
+    libs=$(libs_for_gcc)
+else
+    libs=$(normal_libs)
+endif
+foo:$(objects)
+    $(CC) -o foo $(objects) $(libs)
+```

@@ -45,7 +45,7 @@ ldd sample
 LIBRARY_PATH环境变量：指定程序静态链接库文件搜索路径
 LD_LIBRARY_PATH环境变量：指定程序动态链接库文件搜索路径
 
-# gcc/g++ -I -L -l的区别
+# gcc/g++基本参数
 
 `gcc -o hello hello.c -I /home/hello/include -L /home/hello/lib -lworld`
 
@@ -55,8 +55,8 @@ LD_LIBRARY_PATH环境变量：指定程序动态链接库文件搜索路径
 
 - -lworld表示在上面的lib的路径中寻找libworld.so动态库文件（如果gcc编译选项中加入了“-static”表示寻找libworld.a静态库文件）
 
--o：指定生成可执行文件的名称。使用方法为：g++ -o afile file.cpp file.h ... （可执行文件不可与待编译或链接文件同名，否则会生成相应可执行文件且覆盖原编译或链接文件），如果不使用-o选项，则会生成默认可执行文件a.out。
+- -o：指定生成可执行文件的名称。使用方法为：g++ -o afile file.cpp file.h ... （可执行文件不可与待编译或链接文件同名，否则会生成相应可执行文件且覆盖原编译或链接文件），如果不使用-o选项，则会生成默认可执行文件a.out。
 
--c：只编译不链接，只生成目标文件。
+- -c：只编译不链接，只生成目标文件。
 
--g：添加gdb调试选项。
+- -g：添加gdb调试选项。

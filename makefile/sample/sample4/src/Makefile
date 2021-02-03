@@ -13,6 +13,7 @@ all : $(SRC_BIN)
 $(SRC_BIN) : $(SRC_OBJ)
 	$(CXX) -o $@ $^ $(LDFLAGS) $(LIBS)
 	mv $@ ../build
+	
 # 可以省略通过隐含规则推导
 %.o:%.cpp
 	g++ $(CPPFLAGS) $(CFLAGS) $@ $^

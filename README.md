@@ -26,7 +26,7 @@ ldd sample
 
 # 静态链接库
 
-[动态链接库实例](sample/sample2)
+[静态链接库实例](sample/sample2)
 
 
  静态库链接时搜索路径顺序： 
